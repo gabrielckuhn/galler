@@ -3,7 +3,7 @@ import os
 import streamlit as st
 from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter # O GAL original geralmente está no formato Letter/A4
+from reportlab.lib.pagesizes import letter
 
 st.set_page_config(page_title="Preenchedor GAL - Tuberculose", layout="wide")
 
@@ -101,20 +101,15 @@ with st.form("form_gal"):
 
 # --- FUNÇÃO DE SOBREPOSIÇÃO NO PDF ORIGINAL ---
 def preencher_pdf_original(dados):
-    # 1. Cria a camada transparente com o ReportLab contendo os textos
     packet = io.BytesIO()
-    # Usando o tamanho do PDF padrão
     can = canvas.Canvas(packet, pagesize=letter)
     can.setFont("Helvetica-Bold", 8)
 
-    # Função auxiliar para desenhar o texto numa posição X, Y (em pontos)
     def escrever(texto, x, y):
         if texto:
             can.drawString(x, y, str(texto).upper())
 
     # COORDENADAS (X, Y) DAS CAIXAS DO GAL
-    # Observação: O ponto (0,0) é o canto inferior esquerdo da página.
-    
     # 1. Solicitação
     escrever(dados['data_solicitacao'], 430, 688) # Campo 11
     escrever(dados['finalidade_req_num'], 520, 688) # Campo 12
@@ -154,22 +149,18 @@ def preencher_pdf_original(dados):
     can.save()
     packet.seek(0)
 
-    # 2. Mescla o texto gerado com a primeira página do PDF Original
+    # Mescla o texto gerado com a primeira página do PDF Original
     new_pdf = PdfReader(packet)
     existing_pdf = PdfReader(PDF_MODELO_PATH)
     output = PdfWriter()
 
-    # Pega a primeira página do PDF original
     page = existing_pdf.pages[0]
-    # Sobrepõe o texto por cima
     page.merge_page(new_pdf.pages[0])
     output.add_page(page)
 
-    # Se o PDF original tiver 2 páginas (as instruções), mantém a 2ª página intacta
     if len(existing_pdf.pages) > 1:
         output.add_page(existing_pdf.pages[1])
 
-    # 3. Retorna o buffer final do PDF mesclado
     output_stream = io.BytesIO()
     output.write(output_stream)
     output_stream.seek(0)
@@ -188,6 +179,7 @@ if submitted:
         'complemento_idade_num': complemento_idade.split(" - ")[0],
         'sexo_num': sexo.split(" - ")[0],
         'raca_cor_num': raca_cor.split(" - ")[0],
+        'nacionalidade': nacionalidade,
         'etnia': etnia,
         'nome_mae': nome_mae,
         'cpf_paciente': cpf_paciente,
